@@ -1,10 +1,16 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from config.settings import settings
 from src.api.routes import api_router as health_api_router
 from src.routes.api import router as sample_api_router
 from src.db import init_db, close_db
 from src.middleware.rate_limit import RateLimitMiddleware
+
+# Resolve static directory relative to this file
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -35,15 +41,21 @@ def create_app() -> FastAPI:
         },
     )
 
+    # Mount static files (CSS/JS/HTML assets)
+    if _STATIC_DIR.exists():
+        app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
     # Include routes
     app.include_router(health_api_router)
     app.include_router(sample_api_router)
 
     @app.api_route("/", methods=["GET", "HEAD"], tags=["root"], include_in_schema=True)
     async def root(request: Request):
-        """Root welcome endpoint providing service status and endpoint discovery.
-        Supports both GET and HEAD (Render health probe compatibility).
-        """
+        """Landing page — returns HTML UI for browsers, supports HEAD for health probes."""
+        html_file = _STATIC_DIR / "index.html"
+        if html_file.exists():
+            return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+        # Fallback to JSON if static file is missing
         return {
             "name": "Rate Limiter Service API",
             "status": "online",

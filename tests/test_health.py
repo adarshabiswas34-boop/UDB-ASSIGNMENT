@@ -14,11 +14,11 @@ def test_health_check():
 
 
 def test_root_endpoint():
+    """Root now returns an HTML landing page."""
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "online"
-    assert "endpoints" in data
-    assert data["endpoints"]["health_check"] == "/health"
-    assert data["endpoints"]["standard_rate_limited_data"] == "/api/data"
-    assert data["endpoints"]["strict_rate_limited_expensive"] == "/api/expensive"
+    # Root returns HTML landing page (not JSON)
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "Rate Limiter" in response.text
+    assert "/health" in response.text
+    assert "/api/data" in response.text

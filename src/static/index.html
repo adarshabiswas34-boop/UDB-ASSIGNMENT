@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rate Limiter Service API</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --accent2: #3fb950;
+      --warn: #f85149;
+      --yellow: #e3b341;
+      --text: #c9d1d9;
+      --muted: #8b949e;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      max-width: 680px;
+      margin-bottom: 56px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(88,166,255,.12);
+      border: 1px solid rgba(88,166,255,.3);
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(1.4); }
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #0d1117; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Stats row ── */
+    .stats {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 56px;
+      width: 100%;
+      max-width: 760px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 28px;
+      text-align: center;
+      flex: 1;
+      min-width: 140px;
+    }
+    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* ── Endpoints grid ── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 760px;
+    }
+    .endpoints {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 56px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      text-decoration: none;
+      transition: border-color .2s, transform .15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .method {
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .05em;
+      padding: 3px 8px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .get  { background: rgba(63,185,80,.15);  color: var(--accent2); border: 1px solid rgba(63,185,80,.3); }
+    .post { background: rgba(227,179,65,.12); color: var(--yellow);  border: 1px solid rgba(227,179,65,.3); }
+    .any  { background: rgba(88,166,255,.12); color: var(--accent);  border: 1px solid rgba(88,166,255,.3); }
+    .card-body { flex: 1; }
+    .card-path { font-family: "SF Mono", "Fira Code", monospace; font-size: .9rem; color: var(--text); font-weight: 600; }
+    .card-desc { font-size: .82rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .card-pill {
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-top: 8px;
+      display: inline-block;
+    }
+    .pill-redis { background: rgba(248,81,73,.12); color: var(--warn); border: 1px solid rgba(248,81,73,.25); }
+    .pill-open  { background: rgba(63,185,80,.1);  color: var(--accent2); border: 1px solid rgba(63,185,80,.2); }
+
+    /* ── Algorithm section ── */
+    .algo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 56px;
+    }
+    .algo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .algo-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .algo-name { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .algo-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      width: 100%;
+      max-width: 760px;
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-left { font-size: .8rem; color: var(--muted); }
+    .footer-links { display: flex; gap: 16px; }
+    .footer-links a { font-size: .8rem; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="badge"><span class="badge-dot"></span> Live &amp; Running</div>
+    <h1>Rate Limiter<br>Service API</h1>
+    <p class="subtitle">
+      A production-ready distributed rate limiting backend built with
+      <strong>FastAPI</strong> + <strong>Redis</strong>, supporting
+      Sliding Window, Token Bucket, and Fixed Window algorithms.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/docs">📄 Swagger UI</a>
+      <a class="btn btn-secondary" href="/redoc">📚 ReDoc</a>
+      <a class="btn btn-secondary" href="/health">❤️ Health</a>
+    </div>
+  </div>
+
+  <!-- ── Stats ── -->
+  <div class="stats">
+    <div class="stat"><div class="stat-value">3</div><div class="stat-label">Algorithms</div></div>
+    <div class="stat"><div class="stat-value">60/min</div><div class="stat-label">Default Limit</div></div>
+    <div class="stat"><div class="stat-value">5/min</div><div class="stat-label">Strict Limit</div></div>
+    <div class="stat"><div class="stat-value">Redis</div><div class="stat-label">Backend Store</div></div>
+  </div>
+
+  <!-- ── Endpoints ── -->
+  <p class="section-title">Endpoints</p>
+  <div class="endpoints">
+
+    <a class="card" href="/">
+      <span class="method any">GET</span>
+      <div class="card-body">
+        <div class="card-path">/</div>
+        <div class="card-desc">Service discovery — this page</div>
+        <span class="card-pill pill-open">No limit</span>
+      </div>
+    </a>
+
+    <a class="card" href="/health">
+      <span class="method get">GET</span>
+      <div class="card-body">
+        <div class="card-path">/health</div>
+        <div class="card-desc">Redis &amp; MongoDB connection status</div>
+        <span class="card-pill pill-open">No limit</span>
+      </div>
+    </a>
+
+    <a class="card" href="/api/data">
+      <span class="method get">GET</span>
+      <div class="card-body">
+        <div class="card-path">/api/data</div>
+        <div class="card-desc">Standard rate-limited data endpoint</div>
+        <span class="card-pill pill-redis">60 req / 60 s</span>
+      </div>
+    </a>
+
+    <div class="card" style="cursor:default">
+      <span class="method post">POST</span>
+      <div class="card-body">
+        <div class="card-path">/api/expensive</div>
+        <div class="card-desc">Strict rate-limited expensive operation</div>
+        <span class="card-pill pill-redis">5 req / 60 s</span>
+      </div>
+    </div>
+
+    <a class="card" href="/docs">
+      <span class="method any">UI</span>
+      <div class="card-body">
+        <div class="card-path">/docs</div>
+        <div class="card-desc">Interactive Swagger UI documentation</div>
+        <span class="card-pill pill-open">Open</span>
+      </div>
+    </a>
+
+    <a class="card" href="/redoc">
+      <span class="method any">UI</span>
+      <div class="card-body">
+        <div class="card-path">/redoc</div>
+        <div class="card-desc">ReDoc API reference documentation</div>
+        <span class="card-pill pill-open">Open</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- ── Algorithms ── -->
+  <p class="section-title">Rate Limiting Algorithms</p>
+  <div class="algo-grid">
+    <div class="algo-card">
+      <div class="algo-icon">🪟</div>
+      <div class="algo-name">Sliding Window Log</div>
+      <div class="algo-desc">Tracks exact request timestamps in Redis. Most accurate — no burst spikes at window edges.</div>
+    </div>
+    <div class="algo-card">
+      <div class="algo-icon">🪣</div>
+      <div class="algo-name">Token Bucket</div>
+      <div class="algo-desc">Tokens refill at a steady rate. Allows short bursts while enforcing a long-term average.</div>
+    </div>
+    <div class="algo-card">
+      <div class="algo-icon">⏱️</div>
+      <div class="algo-name">Fixed Window</div>
+      <div class="algo-desc">Resets the counter at fixed intervals. Lightweight and predictable for simple use cases.</div>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <span class="footer-left">Rate Limiter Service API · v0.1.0 · FastAPI + Redis</span>
+    <div class="footer-links">
+      <a href="/docs">Docs</a>
+      <a href="/health">Health</a>
+      <a href="https://github.com/adarshabiswas34-boop/UDB-ASSIGNMENT" target="_blank">GitHub</a>
+    </div>
+  </footer>
+
+</body>
+</html>
