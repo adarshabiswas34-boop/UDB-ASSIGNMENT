@@ -67,7 +67,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     - `Retry-After`: (On HTTP 429) Minimum seconds client must wait before retrying.
     """
 
-    DEFAULT_EXCLUDED_PATHS = {"/docs", "/redoc", "/openapi.json"}
+    DEFAULT_EXCLUDED_PATHS = {"/", "/docs", "/redoc", "/openapi.json"}
 
     def __init__(
         self,

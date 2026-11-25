@@ -39,6 +39,23 @@ def create_app() -> FastAPI:
     app.include_router(health_api_router)
     app.include_router(sample_api_router)
 
+    @app.get("/", tags=["root"])
+    async def root():
+        """Root welcome endpoint providing service status and endpoint discovery."""
+        return {
+            "name": "Rate Limiter Service API",
+            "status": "online",
+            "version": "0.1.0",
+            "documentation": "/docs",
+            "endpoints": {
+                "health_check": "/health",
+                "standard_rate_limited_data": "/api/data",
+                "strict_rate_limited_expensive": "/api/expensive",
+                "swagger_ui": "/docs",
+                "redoc": "/redoc",
+            },
+        }
+
     return app
 
 
