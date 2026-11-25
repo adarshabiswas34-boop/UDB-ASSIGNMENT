@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from config.settings import settings
 from src.api.routes import api_router as health_api_router
 from src.routes.api import router as sample_api_router
@@ -39,9 +39,11 @@ def create_app() -> FastAPI:
     app.include_router(health_api_router)
     app.include_router(sample_api_router)
 
-    @app.get("/", tags=["root"])
-    async def root():
-        """Root welcome endpoint providing service status and endpoint discovery."""
+    @app.api_route("/", methods=["GET", "HEAD"], tags=["root"], include_in_schema=True)
+    async def root(request: Request):
+        """Root welcome endpoint providing service status and endpoint discovery.
+        Supports both GET and HEAD (Render health probe compatibility).
+        """
         return {
             "name": "Rate Limiter Service API",
             "status": "online",

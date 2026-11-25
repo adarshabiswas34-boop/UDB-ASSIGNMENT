@@ -3,6 +3,7 @@ Database client package providing reusable connection instances for Redis and Mo
 """
 
 from typing import Optional
+from config.settings import settings
 from src.db.redis import (
     redis_client,
     get_redis_client,
@@ -23,9 +24,24 @@ async def init_db() -> dict:
     """
     Initializes database connections (Redis & MongoDB).
     Returns a dictionary of connection statuses.
+    Skips MongoDB when pointing to localhost in production (no server available).
     """
     redis_inst = await init_redis()
-    mongo_inst = await init_mongo()
+
+    # Skip MongoDB init if we're in production but still pointing at localhost
+    # (no MongoDB deployed) — avoids noisy connection-refused errors in logs
+    skip_mongo = (
+        settings.ENVIRONMENT == "production"
+        and "localhost" in settings.MONGODB_URL
+    )
+    if skip_mongo:
+        import logging
+        logging.getLogger(__name__).info(
+            "Skipping MongoDB init in production (MONGODB_URL points to localhost)."
+        )
+        mongo_inst = None
+    else:
+        mongo_inst = await init_mongo()
 
     return {
         "redis_connected": redis_inst is not None,
