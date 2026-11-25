@@ -117,7 +117,7 @@ async def init_redis() -> Optional[Redis]:
                     settings.REDIS_HOST, settings.REDIS_PORT, settings.REDIS_DB)
 
         # Build connection pool using settings
-        if settings.REDIS_URL and not settings.REDIS_PASSWORD:
+        if settings.REDIS_URL:
             _redis_pool = ConnectionPool.from_url(
                 settings.REDIS_URL,
                 max_connections=settings.REDIS_MAX_CONNECTIONS,
